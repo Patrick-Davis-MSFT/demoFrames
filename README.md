@@ -7,7 +7,9 @@
 # Framed Demo UI
 This code is a starter pack for coded demos. Add to the readme file as needed.
 
-HAPPY CODING
+![Default Screen](./assets/Ui-Screen.png)
+
+## HAPPY CODING
 
 # Install and Setup 
 This project uses Azure Developer Command line to install. [Azure Developer CLI Documentation](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) is publicly available. Normally this can be installed by using `winget install Microsoft.Azd`
