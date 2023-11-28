@@ -1,0 +1,14 @@
+pypdf==3.9.0
+azure-ai-formrecognizer==3.2.1
+azure-identity==1.13.0
+feedparser==6.0.10
+lxml==4.9.3
+azure-ai-textanalytics==5.3.0
+chardet==5.2.0
+pathlib
+argparse==1.4.0
+uuid==1.30
+azure.core
+azure.cosmos
+azure.keyvault
+pymongo == 3.12.0
