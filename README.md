@@ -29,6 +29,8 @@ The following software is helpful for install
 
 ## Install Steps
 
+> These steps work in cloud shell. Be sure to grant execution on the ./scripts folder before executing `chmod 777 ./scripts`
+
 1. `azd auth login` follow the instructions on the screen
 1. `az login` follow the instructions on the screen (both are needed)
 1. `azd init -t Patrick-Davis-MSFT/AlertingAI` This will download the code but will not initialize a git repository for development. 
@@ -36,7 +38,7 @@ The following software is helpful for install
 1. When finished `azd down` will remove all resources
 
 ## Local development
-> Local Development will need the commands `azd auth login`, `az login` and `azd provision` run to establish secrets and key vaults
+> Local Development will need the commands `azd auth login`, `az login` and `azd provision` run to establish services, secrets and key vaults
 
 To run locally use `azd provision` to deploy the infrastructure and hydrate the databases. Then in the `app-ui` directory run `.\start.ps1`. 
 
