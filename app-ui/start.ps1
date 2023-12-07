@@ -21,8 +21,8 @@ Write-Host "from keyvault $env:AZURE_KEY_VAULT_NAME"
 Write-Host ""
 # Python Env Variable
 # to see these variables use   `import os; print(os.environ['AZURE_COSMOS_CONNECTION_STRING'])` these variables are not visable to the user
-$temp = az keyvault secret show --name $env:AZURE_COSMOS_CONNECTION_STRING_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "value" -o tsv
-Set-Item -Path "env:\AZURE_COSMOS_CONNECTION_STRING" -Value $temp
+$tempCS = az keyvault secret show --name $env:AZURE_COSMOS_CONNECTION_STRING_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query value -o tsv
+[Environment]::SetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING", $tempCS)
 
 # VITE Env Variable for the react app
 # to see these variables in the code use `const appinsight = import.meta.env.VITE_APPLICATIONINSIGHTS_CONNECTION_STRING` consider these visable to the user
