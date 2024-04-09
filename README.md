@@ -33,7 +33,7 @@ The following software is helpful for install
 
 1. `azd auth login` follow the instructions on the screen
 1. `az login` follow the instructions on the screen (both are needed)
-1. `azd init -t Patrick-Davis-MSFT/AlertingAI` This will download the code but will not initialize a git repository for development. 
+1. `azd init -t Patrick-Davis-MSFT/demoFrames` This will download the code but will not initialize a git repository for development. 
 1. `azd up` This will provision, hydrate, and deploy the demonstration
 1. When finished `azd down` will remove all resources
 
