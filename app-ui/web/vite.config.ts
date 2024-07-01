@@ -26,6 +26,11 @@ export default defineConfig({
       }
   },
   server: {
+    host: '127.0.0.1',
+    watch: {
+      usePolling: true,
+      interval: 100, // Poll every 100ms
+    },
       proxy: {
           "/about": {target: "http://127.0.0.1:5000", changeOrigin: true}
       }
