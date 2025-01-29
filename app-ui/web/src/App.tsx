@@ -5,7 +5,6 @@ import { ReactPlugin, withAITracking } from '@microsoft/applicationinsights-reac
 import { createBrowserHistory } from "history";
 
 import { HashRouter, Routes, Route } from "react-router-dom";
-import { initializeIcons } from "@fluentui/react";
 
 
 import './App.css'
@@ -31,7 +30,6 @@ const appInsights = new ApplicationInsights({
 if(AppInsight_CS){
   appInsights.loadAppInsights();
 }
-initializeIcons();
 
 function App() {
 
