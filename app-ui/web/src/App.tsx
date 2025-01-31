@@ -1,4 +1,4 @@
-import * as react from 'react'
+import * as React from 'react'
 
 import { ApplicationInsights } from '@microsoft/applicationinsights-web';
 import { ReactPlugin, withAITracking } from '@microsoft/applicationinsights-react-js';
