@@ -36,8 +36,15 @@ param scmDoBuildDuringDeployment bool = false
 param use32BitWorkerProcess bool = false
 param ftpsState string = 'FtpsOnly'
 param healthCheckPath string = ''
+// Virtual Network Integration Parameters
+param vnetName string = ''
+param subnetName string = ''
 
-resource appService 'Microsoft.Web/sites@2022-03-01' = {
+param dnsResourceGroup string
+
+
+
+resource appService 'Microsoft.Web/sites@2024-04-01' = {
   name: name
   location: location
   tags: tags
@@ -61,6 +68,10 @@ resource appService 'Microsoft.Web/sites@2022-03-01' = {
     }
     clientAffinityEnabled: clientAffinityEnabled
     httpsOnly: true
+    // Add VNet integration configuration if VNet name and subnet name are provided
+    virtualNetworkSubnetId: !empty(vnetName) && !empty(subnetName) && !empty(dnsResourceGroup)? '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}' : null
+    vnetRouteAllEnabled: !empty(vnetName) && !empty(subnetName) ? false : null // Set to false to allow outbound internet traffic
+    vnetContentShareEnabled: !empty(vnetName) && !empty(subnetName) ? true : null
   }
 
   identity: { type: managedIdentity ? 'SystemAssigned' : 'None' }
@@ -101,6 +112,7 @@ module config 'appservice-appsettings.bicep' = if (!empty(appSettings)) {
       },
       runtimeName == 'python' && appCommandLine == '' ? { PYTHON_ENABLE_GUNICORN_MULTIWORKERS: 'true'} : {},
       !empty(applicationInsightsName) ? { APPLICATIONINSIGHTS_CONNECTION_STRING: applicationInsights.properties.ConnectionString } : {},
+      !empty(applicationInsightsName) ? { APPINSIGHTS_INSTRUMENTATIONKEY: applicationInsights.properties.InstrumentationKey } : {},
       !empty(keyVaultName) ? { AZURE_KEY_VAULT_ENDPOINT: keyVault.properties.vaultUri } : {})
   }
 }

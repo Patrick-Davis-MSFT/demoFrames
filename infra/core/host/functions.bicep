@@ -39,9 +39,13 @@ param functionAppScaleLimit int = -1
 param linuxFxVersion string = runtimeNameAndVersion
 param minimumElasticInstanceCount int = -1
 param numberOfWorkers int = -1
-param scmDoBuildDuringDeployment bool = true
+param scmDoBuildDuringDeployment bool = false
 param use32BitWorkerProcess bool = false
 param healthCheckPath string = ''
+// Virtual Network Integration Parameters
+param vnetName string = ''
+param subnetName string = ''
+param dnsResourceGroup string
 
 module functions 'appservice.bicep' = {
   name: '${name}-functions'
@@ -55,7 +59,7 @@ module functions 'appservice.bicep' = {
     applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
     appSettings: union(appSettings, {
-        AzureWebJobsStorage: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+        AzureWebJobsStorage__accountname: storage.name
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
         FUNCTIONS_WORKER_RUNTIME: runtimeName
       })
@@ -74,11 +78,24 @@ module functions 'appservice.bicep' = {
     runtimeNameAndVersion: runtimeNameAndVersion
     scmDoBuildDuringDeployment: scmDoBuildDuringDeployment
     use32BitWorkerProcess: use32BitWorkerProcess
+    vnetName: vnetName
+    subnetName: subnetName
+    dnsResourceGroup: dnsResourceGroup
   }
 }
 
 resource storage 'Microsoft.Storage/storageAccounts@2021-09-01' existing = {
   name: storageAccountName
+}
+
+resource blobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (managedIdentity) {
+  name: guid(storage.id, functions.name, 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+  scope: storage
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalId: functions.outputs.identityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
 }
 
 output identityPrincipalId string = managedIdentity ? functions.outputs.identityPrincipalId : ''

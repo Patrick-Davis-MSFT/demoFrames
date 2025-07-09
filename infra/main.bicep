@@ -22,6 +22,27 @@ param keyVaultName string = ''
 param logAnalyticsName string = ''
 param resourceGroupName string = ''
 param webServiceName string = ''
+param functionServiceName string = ''
+param storageAccountName string = ''
+
+@description('the name of the application vnet for this demo')
+param appDemoVnetName string
+
+@description('The name of deligated subnet for the app demo application for web and function apps')
+param appDemoAppServiceDeligatedSubnetName string
+
+@description('The name of the subnet for the private endpoints')
+param appDemoPrivateEndpointSubnetName string
+
+@description ('The name of the resource group for the private DNS zone - It is easier to manage the private DNS zones in a separate resource group')
+param dnsResourceGroup string
+@description('The name of the DNS zone for the private endpoint of the storage account')
+param appServicePrivateEndPointDNSZoneName_Storage string = 'privatelink.blob.core.windows.net'
+@description('The name of the DNS zone for the private endpoint of the storage account')
+param appServicePrivateEndPointDNSZoneName_Key_Vault string = 'privatelink.vaultcore.azure.net'
+@description('The name of the DNS zone for the private endpoint of the storage account')
+param appServicePrivateEndPointDNSZoneName_Cosmos string = 'privatelink.mongo.cosmos.azure.com'
+
 
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
@@ -47,15 +68,68 @@ module web './app/web.bicep' = {
     tags: tags
     appServicePlanId: appServicePlan.outputs.id
     keyVaultName: keyVault.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    vnetName: appDemoVnetName
+    subnetName: appDemoAppServiceDeligatedSubnetName
+    dnsResourceGroup: dnsResourceGroup
     appSettings: {
-      SCM_DO_BUILD_DURING_DEPLOYMENT: '1'
       AZURE_COSMOS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmos.outputs.connectionStringKey})'
       AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
       AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
       AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
-      AZURE_COSMOS_ALERT_COLLECTION: cosmos.outputs.alertcollection
+      VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
+      AZURE_FUNCTION_APP_NAME: function.outputs.SERVICE_FUNCT_NAME
+      AZURE_FUNCTION_APP_API_KEY: '@Microsoft.KeyVault(SecretUri=${kvFunctKey.outputs.kvSecretId})'
+     }
+  }
+}
+
+module storageAccount './core/storage/storage-account.bicep' = {
+  name: 'storageaccount'
+  scope: rg
+  params: {
+    name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
+    location: location
+    vnetName: appDemoVnetName
+    subnetName: appDemoPrivateEndpointSubnetName
+    dnsResourceGroup: dnsResourceGroup
+    azurePrivateDnsName: appServicePrivateEndPointDNSZoneName_Storage
+    tags: tags
+  }
+}
+
+// The application frontend
+module function './app/function.bicep' = {
+  name: 'function'
+  scope: rg
+  params: {
+    name: !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}${resourceToken}'
+    location: location
+    tags: tags
+    appServicePlanId: appServicePlan.outputs.id
+    keyVaultName: keyVault.outputs.name
+    storageAccountName: storageAccount.outputs.name
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    vnetName: appDemoVnetName
+    subnetName: appDemoAppServiceDeligatedSubnetName
+    dnsResourceGroup: dnsResourceGroup
+    appSettings: {
+      AZURE_COSMOS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmos.outputs.connectionStringKey})'
+      AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
+      AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
+      AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
       VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
     }
+  }
+}
+
+module kvFunctKey './core/security/keyvault-secret.bicep' = { 
+  name: 'funct-key'
+  scope: rg
+  params: {
+    name: 'funct-key'
+    keyVaultName: keyVault.outputs.name
+    secretValue: 'Init-kv-reference'
   }
 }
 
@@ -70,6 +144,14 @@ module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
   }
 }
 
+module apiKeyVaultAccessFunc './core/security/keyvault-access.bicep' = {
+  name: 'api-keyvault-access-func'
+  scope: rg
+  params: {
+    keyVaultName: keyVault.outputs.name
+    principalId: function.outputs.SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID
+  }
+}
 
 // The application database
 module cosmos './app/db.bicep' = {
@@ -81,6 +163,10 @@ module cosmos './app/db.bicep' = {
     location: location
     tags: tags
     keyVaultName: keyVault.outputs.name
+    dnsResourceGroup: dnsResourceGroup
+    vnetName: appDemoVnetName
+    subnetName: appDemoPrivateEndpointSubnetName
+    azurePrivateDnsName: appServicePrivateEndPointDNSZoneName_Cosmos
   }
 }
 
@@ -93,7 +179,7 @@ module appServicePlan './core/host/appserviceplan.bicep' = {
     location: location
     tags: tags
     sku: {
-      name: 'B1'
+      name: 'B3'
     }
   }
 }
@@ -107,6 +193,11 @@ module keyVault './core/security/keyvault.bicep' = {
     location: location
     tags: tags
     principalId: principalId
+    vnetName: appDemoVnetName
+    subnetName: appDemoPrivateEndpointSubnetName
+    dnsResourceGroup: dnsResourceGroup
+    azurePrivateDnsName: appServicePrivateEndPointDNSZoneName_Key_Vault
+    privateAccess: false
   }
 }
 
@@ -143,7 +234,6 @@ output AZURE_RESOURCE_GROUP string = rg.name
 output AZURE_COSMOS_DATABASE_NAME string = cosmos.outputs.databaseName
 output AZURE_COSMOS_ENDPOINT string = cosmos.outputs.endpoint
 output AZURE_COSMOS_ABOUT_COLLECTION string = cosmos.outputs.aboutcollection
-output AZURE_COSMOS_ALERT_COLLECTION string = cosmos.outputs.alertcollection
 output AZURE_COSMOS_CONNECTION_STRING_KEY string = substring(cosmos.outputs.connectionStringKey, indexOf(cosmos.outputs.connectionStringKey, 'secrets/')+8)
 
 // App outputs
@@ -152,3 +242,6 @@ output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output VITE_APPLICATIONINSIGHTS_CONNECTION_STRING_KEY string = substring(kvAppIn.outputs.kvSecretId, indexOf(kvAppIn.outputs.kvSecretId, 'secrets/')+8)
 output VITE_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
 output REACT_APP_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
+output AZURE_FUNCTION_APP_API_KEY string = kvFunctKey.name
+output AZURE_FUNCTION_APP_API_KEY_URI string = kvFunctKey.outputs.kvSecretId
+output AZURE_FUNCTION_APP_NAME string = function.outputs.SERVICE_FUNCT_NAME

@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
-name: AlertingAI
+name: DemoFrames
 metadata:
-  template: Patrick-Davis-MSFT/AlertingAI@0.0.1-beta
+  template: Patrick-Davis-MSFT/demo-frames@0.0.2-beta
 services:
   app-ui:
     project: ./app-ui/api
@@ -12,14 +12,34 @@ services:
       prepackage:
         windows:
           shell: pwsh
-          run:  cd ../web;npm install;npm run build
+          run:  |
+            Write-Host "Building React application..."
+            Set-Location ../web
+            npm install
+            npm run build
+            Write-Host "Build completed. Checking output..."
+            Get-ChildItem ../api/static -Recurse | Select-Object Name, Length
+            Set-Location ../api
           interactive: true
           continueOnError: false
         posix:
           shell: sh
-          run:  cd ../web;npm install;npm run build
+          run:  |
+            echo "Building React application..."
+            cd ../web
+            npm install
+            npm run build
+            echo "Build completed. Checking output..."
+            ls -la ../api/static/
+            cd ../api
           interactive: true
           continueOnError: false
+  app-funct:
+    project: ./functions/web-functions
+    language: dotnet
+    host: function
+    tags:
+      azd-service-name: app-funct
 hooks:
     postprovision:
       windows:

@@ -1,37 +1,46 @@
 param name string
 param location string = resourceGroup().location
 param tags object = {}
-param serviceName string = 'app-ui'
+param serviceName string = 'app-funct'
 param appCommandLine string = ''
 param appServicePlanId string
 param appSettings object = {}
 param keyVaultName string = ''
+param storageAccountName string
 param applicationInsightsName string = ''
 param vnetName string = ''
 param subnetName string = ''
 param dnsResourceGroup string
 
-module web '../core/host/appservice.bicep' = {
-  name: '${name}-deployment'
+
+module function '../core/host/functions.bicep' = {
+  name: '${name}'
   params: {
     name: name
     location: location
     tags: union(tags, { 'azd-service-name': serviceName })
     appCommandLine: appCommandLine
     appServicePlanId: appServicePlanId
-    scmDoBuildDuringDeployment: true
+    scmDoBuildDuringDeployment: false
     managedIdentity: true
-    runtimeName: 'python'
-    runtimeVersion: '3.13'
+    runtimeName: 'dotnet-isolated'
+    runtimeVersion: '8.0'
+    runtimeNameAndVersion: 'DOTNET-ISOLATED|8.0'
     appSettings: appSettings
     keyVaultName: keyVaultName
-    applicationInsightsName:applicationInsightsName
+    storageAccountName: storageAccountName
+    applicationInsightsName: applicationInsightsName
     vnetName: vnetName
     subnetName: subnetName
     dnsResourceGroup: dnsResourceGroup
   }
 }
 
-output SERVICE_WEB_IDENTITY_PRINCIPAL_ID string = web.outputs.identityPrincipalId
-output SERVICE_WEB_NAME string = web.outputs.name
-output SERVICE_WEB_URI string = web.outputs.uri
+
+
+output SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPrincipalId
+output SERVICE_FUNCT_NAME string = function.outputs.name
+output SERVICE_FUNCT_URI string = function.outputs.uri
+output SERVICE_FUNCT_KV_KEY string = 'funct-key-${serviceName}'
+
+

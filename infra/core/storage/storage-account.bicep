@@ -8,7 +8,7 @@ param tags object = {}
   'Hot'
   'Premium' ])
 param accessTier string = 'Hot'
-param allowBlobPublicAccess bool = true
+param allowBlobPublicAccess bool = false
 param allowCrossTenantReplication bool = true
 param allowSharedKeyAccess bool = true
 param containers array = []
@@ -26,6 +26,17 @@ param networkAcls object = {
 @allowed([ 'Enabled', 'Disabled' ])
 param publicNetworkAccess string = 'Enabled'
 param sku object = { name: 'Standard_LRS' }
+
+@description('The name of the virtual network')
+param vnetName string
+
+@description('The name of the subnet')
+param subnetName string
+
+@description('The Resource Group of the DNS Zone')
+param dnsResourceGroup string
+@description('The name of the DNS Zone')
+param azurePrivateDnsName string = 'privatelink.blob.core.windows.net'
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: name
@@ -57,6 +68,50 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
         publicAccess: contains(container, 'publicAccess') ? container.publicAccess : 'None'
       }
     }]
+  }
+}
+
+
+
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${name}-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${name}-plsc'
+        properties: {
+          privateLinkServiceId: storage.id
+          groupIds: [
+            'blob'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(dnsResourceGroup)
+  name: azurePrivateDnsName
+}
+
+// Update the private DNS zone group to reference the extern DNS zone
+resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = {
+  parent: privateEndpoint
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-blob'
+        properties: {
+          privateDnsZoneId: privateDnsZone.id
+        }
+      }
+    ]
   }
 }
 

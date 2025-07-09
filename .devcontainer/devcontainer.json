@@ -1,6 +1,6 @@
 {
     "name": "Azure Developer CLI",
-    "image": "mcr.microsoft.com/devcontainers/javascript-node:20-bullseye",
+    "image": "mcr.microsoft.com/devcontainers/javascript-node:22-bullseye",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2": {
         },
@@ -9,9 +9,15 @@
             "nodeGypDependencies": false
         },
         "ghcr.io/azure/azure-dev/azd:latest": {},
-        "ghcr.io/devcontainers/features/powershell:1.1.0": {},
-        "ghcr.io/devcontainers/features/azure-cli:1.0.8": {},
-        "ghcr.io/devcontainers/features/python:1": { "installPackages": ["python3-pip"] }
+        "ghcr.io/devcontainers/features/powershell:latest": {},
+        "ghcr.io/devcontainers/features/azure-cli:latest": {},
+        "ghcr.io/devcontainers/features/python:1": { 
+            "installPackages": ["python3-pip"], 
+            "version": "3.13" 
+        },
+        "ghcr.io/devcontainers/features/dotnet:latest": {
+            "version": "8.0"
+        }
     },
     "customizations": {
         "vscode": {
@@ -27,7 +33,8 @@
                 "ms-vscode.vscode-node-azure-pack",
                 "ms-vscode.powershell",
                 "ms-python.python",
-                "ms-python.vscode-pylance"
+                "ms-python.vscode-pylance",
+                "ms-dotnettools.csdevkit"
             ]
         }
     },

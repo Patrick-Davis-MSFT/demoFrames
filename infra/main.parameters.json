@@ -10,6 +10,27 @@
     },
     "principalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "appDemoVnetName": {
+      "value": "${APP_DEMO_VNET_NAME}"
+    },
+    "appDemoAppServiceDeligatedSubnetName": {
+      "value": "${APP_DEMO_APP_SERVICE_DELEGATED_SUBNET_NAME}"
+    },
+    "appDemoPrivateEndpointSubnetName": {
+      "value": "${APP_DEMO_PRIVATE_ENDPOINT_SUBNET_NAME}"
+    },
+    "appServicePrivateEndPointDNSZoneName_Storage": {
+      "value": "${APP_SERVICE_PRIVATE_ENDPOINT_DNS_ZONE_NAME_STORAGE}"
+    },
+    "appServicePrivateEndPointDNSZoneName_Key_Vault": {
+      "value": "${APP_SERVICE_PRIVATE_ENDPOINT_DNS_ZONE_NAME_KEY_VAULT}"
+    },
+    "appServicePrivateEndPointDNSZoneName_Cosmos": {
+      "value": "${APP_SERVICE_PRIVATE_ENDPOINT_DNS_ZONE_NAME_COSMOS}"
+    },
+    "dnsResourceGroupName": {
+      "value": "${DNS_RESOURCE_GROUP_NAME}"
     }
   }
 }
