@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Outlet, NavLink, Link } from "react-router-dom";
+import { Outlet, NavLink } from "react-router-dom";
 
 
-import openai from "../assets/openai.svg";
+// import openai from "../assets/openai.svg";
+import aiIcon from "../assets/02749-icon-service-Azure-Applied-AI-Services.svg";
+import aiFoundryIcon from "../assets/03513-icon-service-AI-Studio.svg";
 import styles from "./Layout.module.css";
 import msft from "../assets/MS-Azure_logo_stacked_c-white_rgb.png";
 import { Add28Filled } from "@fluentui/react-icons";
@@ -15,9 +17,11 @@ const Layout = () => {
             <header className={styles.header} role={"banner"}>
                 <div className={styles.headerContainer}>
                     <div className={styles.headerTitleContainer}>
-                        <img src={openai} alt="Azure OpenAI" className={styles.headerLogo} />
+                        <img src={aiFoundryIcon} alt="Azure AI Foundry" className={styles.headerLogo} />
                         <Add28Filled />
-                        <img src={msft} alt="Azure OpenAI" className={styles.headerLogoMsft} />
+                        <img src={aiIcon} alt="Azure AI Services" className={styles.headerLogoMiddle} />
+                        <Add28Filled />
+                        <img src={msft} alt="Azure Cloud" className={styles.headerLogoMsft} />
                         <h3 className={styles.headerTitle}>HEADER HERE</h3>
                     </div>
                     <nav>

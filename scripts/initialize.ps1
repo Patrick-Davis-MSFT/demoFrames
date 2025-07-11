@@ -40,6 +40,34 @@ $currUser = az ad signed-in-user show --query "{id:id}" -o tsv
 az role assignment create --assignee $currUser --role "Key Vault Secrets Officer" --scope "/subscriptions/$env:AZURE_SUBSCRIPTION_ID/resourceGroups/$env:AZURE_RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$env:AZURE_KEY_VAULT_NAME"
 az role assignment create --assignee $currUser --role "Key Vault Crypto Officer" --scope "/subscriptions/$env:AZURE_SUBSCRIPTION_ID/resourceGroups/$env:AZURE_RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$env:AZURE_KEY_VAULT_NAME"
 
+Write-Host 'Add Function Keys to Key Vault'
+$functionKey = az functionapp keys list --name $env:AZURE_FUNCTION_APP_NAME --resource-group $env:AZURE_RESOURCE_GROUP --query "masterKey" -o tsv
+az keyvault secret set --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --value $functionKey
+# Get all versions of the secret and disable all except the latest
+$secretVersions = az keyvault secret list-versions --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "[].id" -o tsv
+$latestVersion = az keyvault secret show --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "id" -o tsv
+
+foreach ($version in $secretVersions) {
+    if ($version -ne $latestVersion) {
+        $versionId = ($version -split "/")[-1]
+        az keyvault secret set-attributes --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --version $versionId --enabled false
+    }
+}
+
+$functionKey = az functionapp keys list --name $env:AZURE_FUNCTION_APP_NAME --resource-group $env:AZURE_RESOURCE_GROUP --query "functionKeys.default" -o tsv
+az keyvault secret set --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --value $functionKey
+# Get all versions of the secret and disable all except the latest
+$secretVersions = az keyvault secret list-versions --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "[].id" -o tsv
+$latestVersion = az keyvault secret show --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "id" -o tsv
+
+foreach ($version in $secretVersions) {
+    if ($version -ne $latestVersion) {
+        $versionId = ($version -split "/")[-1]
+        az keyvault secret set-attributes --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --version $versionId --enabled false
+    }
+}
+
+
 $tempCS = az keyvault secret show --name "AZURE-COSMOS-CONNECTION-STRING" --vault-name $env:AZURE_KEY_VAULT_NAME --query value -o tsv
 [Environment]::SetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING", $tempCS)
 

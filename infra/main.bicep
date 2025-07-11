@@ -79,7 +79,7 @@ module web './app/web.bicep' = {
       AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
       VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
       AZURE_FUNCTION_APP_NAME: function.outputs.SERVICE_FUNCT_NAME
-      AZURE_FUNCTION_APP_API_KEY: '@Microsoft.KeyVault(SecretUri=${kvFunctKey.outputs.kvSecretId})'
+      AZURE_FUNCTION_APP_API_KEY: '@Microsoft.KeyVault(SecretUri=${function.outputs.SERVICE_FUNCT_MASTER_KEY_URI})'
      }
   }
 }
@@ -123,7 +123,7 @@ module function './app/function.bicep' = {
   }
 }
 
-module kvFunctKey './core/security/keyvault-secret.bicep' = { 
+/*module kvFunctKey './core/security/keyvault-secret.bicep' = { 
   name: 'funct-key'
   scope: rg
   params: {
@@ -132,7 +132,7 @@ module kvFunctKey './core/security/keyvault-secret.bicep' = {
     secretValue: 'Init-kv-reference'
   }
 }
-
+*/
 
 // Give the API access to KeyVault
 module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
@@ -246,7 +246,10 @@ output AZURE_WEB_APP_NAME string = web.outputs.SERVICE_WEB_NAME
 output AZURE_WEB_APP_IDENTITY_PRINCIPAL_ID string = web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
 
 output REACT_APP_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
-output AZURE_FUNCTION_APP_API_KEY string = kvFunctKey.name
-output AZURE_FUNCTION_APP_API_KEY_URI string = kvFunctKey.outputs.kvSecretId
+output AZURE_FUNCTION_APP_API_KEY string = function.outputs.SERVICE_FUNCT_MASTER_KEY
+output AZURE_FUNCTION_APP_API_KEY_URI string = function.outputs.SERVICE_FUNCT_MASTER_KEY_URI
+output AZURE_FUNCTION_APP_HOST_KEY string = function.outputs.SERVICE_FUNCT_HOST_KEY
+output AZURE_FUNCTION_APP_HOST_KEY_URI string = function.outputs.SERVICE_FUNCT_HOST_KEY_URI
+output AZURE_FUNCTION_APP_URI string = function.outputs.SERVICE_FUNCT_URI
 output AZURE_FUNCTION_APP_NAME string = function.outputs.SERVICE_FUNCT_NAME
 output AZURE_FUNCTION_APP_IDENTITY_PRINCIPAL_ID string = function.outputs.SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID

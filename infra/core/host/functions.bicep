@@ -98,6 +98,33 @@ resource blobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
+resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = if (!(empty(keyVaultName))) {
+  name: keyVaultName
+}
+
+/*
+module kvFunctKey '../security/keyvault-secret.bicep' = { 
+  name: 'function-key-${name}'
+  params: {
+    name: 'funct-key'
+    keyVaultName: keyVault.name
+    secretValue: 'master-key-placeholder' // Placeholder, will be updated after deployment
+  }
+}
+
+module kvFuncHostKey '../security/keyvault-secret.bicep' = { 
+  name: 'host-key-${name}'
+  params: {
+    name: 'funct-host-key'  
+    keyVaultName: keyVault.name
+    secretValue: 'host-key-placeholder' // Placeholder, will be updated after deployment
+  }
+}
+*/
 output identityPrincipalId string = managedIdentity ? functions.outputs.identityPrincipalId : ''
 output name string = functions.outputs.name
 output uri string = functions.outputs.uri
+output masterKeySecretName string = 'funct-key'
+output masterKeySecretUri string = 'https://${keyVault.name}/secrets/funct-key'
+output defaultHostKeySecretName string = 'funct-host-key'
+output defaultHostKeySecretUri string = 'https://${keyVault.name}/secrets/funct-host-key'

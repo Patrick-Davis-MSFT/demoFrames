@@ -3,3 +3,6 @@ export type About = {
     "appVersion": "string",
     "deploy_datetime": "string"
 }
+export type heartbeat = {
+    "status": string
+}

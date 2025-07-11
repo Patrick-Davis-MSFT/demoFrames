@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace web_functions;
 
@@ -17,7 +18,8 @@ public class ApiFunction
     [Function("Heartbeat")]
     public IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
     {
-        _logger.LogInformation("C# HTTP trigger function processed a request.");
-        return new OkObjectResult("Alive: " + DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"));
+        _logger.LogInformation("heartbeat request");
+        var retVal = new { status = "alive - " + DateTime.Now.ToString() };
+        return new OkObjectResult(retVal); // ASP.NET Core will serialize this automatically
     }
 }

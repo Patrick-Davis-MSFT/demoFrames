@@ -31,3 +31,4 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
 }
 
 output kvSecretId string = keyVaultSecret.properties.secretUri
+output kvSecretName string = keyVaultSecret.name

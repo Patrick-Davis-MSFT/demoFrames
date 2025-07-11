@@ -34,6 +34,12 @@
     margin-right:25px;
 }
 
+.headerLogoMiddle {
+    height: 40px;
+    margin-right:25px;
+    margin-left:25px;
+}
+
 .headerLogoMsft {
     height: 95px;
 }

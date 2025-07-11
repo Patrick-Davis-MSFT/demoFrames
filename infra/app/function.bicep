@@ -42,5 +42,7 @@ output SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID string = function.outputs.identityPri
 output SERVICE_FUNCT_NAME string = function.outputs.name
 output SERVICE_FUNCT_URI string = function.outputs.uri
 output SERVICE_FUNCT_KV_KEY string = 'funct-key-${serviceName}'
-
-
+output SERVICE_FUNCT_MASTER_KEY string = function.outputs.masterKeySecretName
+output SERVICE_FUNCT_MASTER_KEY_URI string = function.outputs.masterKeySecretUri
+output SERVICE_FUNCT_HOST_KEY string = function.outputs.defaultHostKeySecretName
+output SERVICE_FUNCT_HOST_KEY_URI string = function.outputs.defaultHostKeySecretUri

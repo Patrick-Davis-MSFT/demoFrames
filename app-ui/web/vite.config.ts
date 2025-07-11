@@ -28,7 +28,8 @@ export default defineConfig({
       interval: 100, // Poll every 100ms
     },
       proxy: {
-          "/about": {target: "http://127.0.0.1:5000", changeOrigin: true}
+          "/about": {target: "http://127.0.0.1:5000", changeOrigin: true},
+          "/heartbeatwebapp": {target: "http://127.0.0.1:5000", changeOrigin: true}
       }
   }
 });
