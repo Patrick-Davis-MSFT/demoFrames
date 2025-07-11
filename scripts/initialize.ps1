@@ -35,7 +35,7 @@ Write-Host 'Installing dependencies from "requirements.txt" into virtual environ
 Start-Process -FilePath $venvPythonPath -ArgumentList "-m pip install -r ./scripts/requirements.txt" -Wait -NoNewWindow
 
 Write-Host 'Setting kv policy for current user'
-$currUser = az ad signed-in-user show --query id -o tsv
+$currUser = az ad signed-in-user show --query "{id:id}" -o tsv
 
 az role assignment create --assignee $currUser --role "Key Vault Secrets Officer" --scope "/subscriptions/$env:AZURE_SUBSCRIPTION_ID/resourceGroups/$env:AZURE_RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$env:AZURE_KEY_VAULT_NAME"
 az role assignment create --assignee $currUser --role "Key Vault Crypto Officer" --scope "/subscriptions/$env:AZURE_SUBSCRIPTION_ID/resourceGroups/$env:AZURE_RESOURCE_GROUP/providers/Microsoft.KeyVault/vaults/$env:AZURE_KEY_VAULT_NAME"
@@ -43,8 +43,9 @@ az role assignment create --assignee $currUser --role "Key Vault Crypto Officer"
 $tempCS = az keyvault secret show --name "AZURE-COSMOS-CONNECTION-STRING" --vault-name $env:AZURE_KEY_VAULT_NAME --query value -o tsv
 [Environment]::SetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING", $tempCS)
 
-$cosmosContributorRoleId = az cosmosdb sql role definition list --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --query --query "[?roleName=='Cosmos DB Built-in Data Contributor'].id" --output tsv
-Write-Host 'Setting role for cosmosdb user'
+$cosmosContributorRoleId = az cosmosdb sql role definition list --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --query "[?roleName=='Cosmos DB Built-in Data Contributor'].id" --output tsv
+
+Write-Host 'Setting role for cosmosdb user '
 az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $currUser --scope "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourceGroups/msdocs-identity-example/providers/Microsoft.DocumentDB/databaseAccounts/msdocs-identity-example-nosql"
 Write-Host 'Setting role for cosmosdb web and function app'
 az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $env:AZURE_WEB_APP_IDENTITY_PRINCIPAL_ID --scope "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourceGroups/msdocs-identity-example/providers/Microsoft.DocumentDB/databaseAccounts/msdocs-identity-example-nosql"
