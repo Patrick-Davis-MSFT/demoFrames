@@ -28,6 +28,39 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
     enableMultipleWriteLocations: false
     apiProperties: (kind == 'MongoDB') ? { serverVersion: '4.2' } : {}
     capabilities: [ { name: 'EnableServerless' } ]
+    // Configure network access to "Selected Networks" without specifying any VNets
+    publicNetworkAccess: 'Enabled'
+    isVirtualNetworkFilterEnabled: true
+    virtualNetworkRules: []
+    ipRules: [
+      {
+        ipAddressOrRange: '0.0.0.0'
+      }
+      {
+        ipAddressOrRange: '4.210.172.107'
+      }
+      {
+        ipAddressOrRange: '13.88.56.148'
+      }
+      {
+        ipAddressOrRange: '13.91.105.215'
+      }
+      {
+        ipAddressOrRange: '13.95.130.121'
+      }
+      {
+        ipAddressOrRange: '20.245.81.54'
+      }
+      {
+        ipAddressOrRange: '40.80.152.199'
+      }
+      {
+        ipAddressOrRange: '40.91.218.243'
+      }
+      {
+        ipAddressOrRange: '40.118.23.126'
+      }
+    ]
   }
 }
 

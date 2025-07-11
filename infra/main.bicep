@@ -235,13 +235,18 @@ output AZURE_COSMOS_DATABASE_NAME string = cosmos.outputs.databaseName
 output AZURE_COSMOS_ENDPOINT string = cosmos.outputs.endpoint
 output AZURE_COSMOS_ABOUT_COLLECTION string = cosmos.outputs.aboutcollection
 output AZURE_COSMOS_CONNECTION_STRING_KEY string = substring(cosmos.outputs.connectionStringKey, indexOf(cosmos.outputs.connectionStringKey, 'secrets/')+8)
-
+output AZURE_COSMOS_ACCOUNT_NAME string = cosmos.outputs.accountname
+output AZURE_COSMOS_ACCOUNT_ID string = cosmos.outputs.accountid
 // App outputs
 output AZURE_KEY_VAULT_ENDPOINT string = keyVault.outputs.endpoint
 output AZURE_KEY_VAULT_NAME string = keyVault.outputs.name
 output VITE_APPLICATIONINSIGHTS_CONNECTION_STRING_KEY string = substring(kvAppIn.outputs.kvSecretId, indexOf(kvAppIn.outputs.kvSecretId, 'secrets/')+8)
 output VITE_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
+output AZURE_WEB_APP_NAME string = web.outputs.SERVICE_WEB_NAME
+output AZURE_WEB_APP_IDENTITY_PRINCIPAL_ID string = web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
+
 output REACT_APP_WEB_BASE_URL string = web.outputs.SERVICE_WEB_URI
 output AZURE_FUNCTION_APP_API_KEY string = kvFunctKey.name
 output AZURE_FUNCTION_APP_API_KEY_URI string = kvFunctKey.outputs.kvSecretId
 output AZURE_FUNCTION_APP_NAME string = function.outputs.SERVICE_FUNCT_NAME
+output AZURE_FUNCTION_APP_IDENTITY_PRINCIPAL_ID string = function.outputs.SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID

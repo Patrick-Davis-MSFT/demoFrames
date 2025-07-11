@@ -47,27 +47,7 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases@2022-0
   ]
 }
 
-/*// Private DNS Zone for Cosmos DB MongoDB API
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = if (!empty(vnetName) && !empty(subnetName)) {
-  name: 'privatelink.mongo.cosmos.azure.com'
-  location: 'global'
-  tags: tags
-}
 
-// Link the Private DNS Zone to the VNet
-resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (!empty(vnetName) && !empty(subnetName)) {
-  parent: privateDnsZone
-  name: '${vnetName}-link'
-  location: 'global'
-  tags: tags
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: resourceId('Microsoft.Network/virtualNetworks', vnetName)
-    }
-  }
-}
-*/
 // Create Private Endpoint for Cosmos DB Account
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-05-01' = if (!empty(vnetName) && !empty(subnetName)) {
   name: '${accountName}-pe'
@@ -116,3 +96,5 @@ resource privateEndpointDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZ
 output connectionStringKey string = cosmos.outputs.connectionStringKey
 output databaseName string = databaseName
 output endpoint string = cosmos.outputs.endpoint
+output accountname string = cosmos.outputs.name
+output accountid string = cosmos.outputs.id

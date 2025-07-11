@@ -1,5 +1,6 @@
 Write-Host ""
 Write-Host "Loading azd .env file from current environment"
+Write-Host "At least provision the azd environment with 'azd env new' or 'azd env select' before running this script"
 Write-Host ""
 
 foreach ($line in (& azd env get-values)) {
@@ -67,11 +68,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Starting web"
+Write-Host "Start the Web app from the app-ui/web folder using npm run dev"
+Write-Host "Execute npm run dev in a separate terminal"
 Write-Host ""
-Start-Process npm -ArgumentList "run dev"
-Start-Process http://localhost:5173/
+#Start-Process npm -ArgumentList "run dev"
+#Start-Process http://localhost:5173/
 
+Write-Host ""
+Write-Host "Starting Backend"
+Write-Host "Remember to start the dev tunnel for the backend function apps and replace the name in the app.py file"
+Write-Host "Remember in local debug the cosmos db needs to be accessiable from your local machine either your local IP or (0.0.0.0/1)"
+Write-Host ""
 Set-Location ../api
 Start-Process -FilePath $venvPythonPath -ArgumentList "-m flask run --port=5000 --reload --debug" -Wait -NoNewWindow
 

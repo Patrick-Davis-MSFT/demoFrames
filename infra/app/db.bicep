@@ -43,3 +43,5 @@ output connectionStringKey string = cosmos.outputs.connectionStringKey
 output databaseName string = cosmos.outputs.databaseName
 output endpoint string = cosmos.outputs.endpoint
 output aboutcollection string = collections[0].name
+output accountname string = cosmos.outputs.accountname
+output accountid string = cosmos.outputs.accountid

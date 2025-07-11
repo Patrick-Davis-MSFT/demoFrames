@@ -15,11 +15,10 @@ from azure.identity import DefaultAzureCredential
 from approaches.versioncheck import versionCheck
 
 # Replace these with your own values, either in environment variables or directly here
-AZURE_COSMOS_ENDPOINT = os.environ.get("AZURE_COSMOS_ENDPOINT") or "AZURE_COSMOS_ENDPOINT"
-AZURE_COSMOS_DATABASE_NAME = os.environ.get("AZURE_COSMOS_DATABASE_NAME") or "AZURE_COSMOS_DATABASE_NAME"
-AZURE_COSMOS_ABOUT_COLLECTION = os.environ.get("AZURE_COSMOS_ABOUT_COLLECTION") or "AZURE_COSMOS_ABOUT_COLLECTION"
-AZURE_COSMOS_ALERT_COLLECTION = os.environ.get("AZURE_COSMOS_ALERT_COLLECTION") or "AZURE_COSMOS_ALERT_COLLECTION"
-AZURE_COSMOS_CONNECTION_STRING = os.environ.get("AZURE_COSMOS_CONNECTION_STRING") or "AZURE_COSMOS_CONNECTION_STRING"
+AZURE_COSMOS_ENDPOINT = os.environ.get("AZURE_COSMOS_ENDPOINT", "AZURE_COSMOS_ENDPOINT") or "AZURE_COSMOS_ENDPOINT"
+AZURE_COSMOS_DATABASE_NAME = os.environ.get("AZURE_COSMOS_DATABASE_NAME","AZURE_COSMOS_DATABASE_NAME") or "AZURE_COSMOS_DATABASE_NAME"
+AZURE_COSMOS_ABOUT_COLLECTION = os.environ.get("AZURE_COSMOS_ABOUT_COLLECTION","AZURE_COSMOS_ABOUT_COLLECTION") or "AZURE_COSMOS_ABOUT_COLLECTION"
+AZURE_COSMOS_CONNECTION_STRING = os.environ.get("AZURE_COSMOS_CONNECTION_STRING", "AZURE_COSMOS_CONNECTION_STRING") or "AZURE_COSMOS_CONNECTION_STRING"
 
 # Use the current user identity to authenticate with Azure OpenAI, Cognitive Search and Blob Storage (no secrets needed, 
 # just use 'az login' locally, and managed identity when deployed on Azure). If you need to use keys, use separate AzureKeyCredential instances with the 
