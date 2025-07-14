@@ -102,25 +102,6 @@ resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' existing = if (!(empty(
   name: keyVaultName
 }
 
-/*
-module kvFunctKey '../security/keyvault-secret.bicep' = { 
-  name: 'function-key-${name}'
-  params: {
-    name: 'funct-key'
-    keyVaultName: keyVault.name
-    secretValue: 'master-key-placeholder' // Placeholder, will be updated after deployment
-  }
-}
-
-module kvFuncHostKey '../security/keyvault-secret.bicep' = { 
-  name: 'host-key-${name}'
-  params: {
-    name: 'funct-host-key'  
-    keyVaultName: keyVault.name
-    secretValue: 'host-key-placeholder' // Placeholder, will be updated after deployment
-  }
-}
-*/
 output identityPrincipalId string = managedIdentity ? functions.outputs.identityPrincipalId : ''
 output name string = functions.outputs.name
 output uri string = functions.outputs.uri

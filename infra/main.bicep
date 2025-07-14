@@ -123,17 +123,6 @@ module function './app/function.bicep' = {
   }
 }
 
-/*module kvFunctKey './core/security/keyvault-secret.bicep' = { 
-  name: 'funct-key'
-  scope: rg
-  params: {
-    name: 'funct-key'
-    keyVaultName: keyVault.outputs.name
-    secretValue: 'Init-kv-reference'
-  }
-}
-*/
-
 // Give the API access to KeyVault
 module apiKeyVaultAccess './core/security/keyvault-access.bicep' = {
   name: 'api-keyvault-access'
