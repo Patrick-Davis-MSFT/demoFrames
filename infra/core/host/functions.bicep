@@ -98,7 +98,6 @@ resource blobRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01'
   }
 }
 
-
 resource queueRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (managedIdentity) {
   name: guid(storage.id, functions.name, '974c5e8b-45b9-4653-ba55-5f855dd0fb88')
   scope: storage
@@ -124,6 +123,16 @@ resource tableRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01
   scope: storage
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')
+    principalId: functions.outputs.identityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource contributorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (managedIdentity) {
+  name: guid(storage.id, functions.name, '17d1049b-9a84-46fb-8f53-869881c3d3ab')
+  scope: storage
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '17d1049b-9a84-46fb-8f53-869881c3d3ab')
     principalId: functions.outputs.identityPrincipalId
     principalType: 'ServicePrincipal'
   }
