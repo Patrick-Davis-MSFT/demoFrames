@@ -33,9 +33,10 @@ The following software is helpful for install
 
 1. `azd auth login` follow the instructions on the screen
 1. `az login` follow the instructions on the screen (both are needed)
-1. `azd init -t Patrick-Davis-MSFT/demoFrames` This will download the code but will not initialize a git repository for development. 
+1. `azd init` This will download the code but will not initialize a git repository for development. 
 1. `azd up` This will provision, hydrate, and deploy the demonstration
 1. When finished `azd down` will remove all resources
+1. There is a bug that requires `azd provision --no-state` to be run afterwards to fully set the app enviroment variables
 
 ## Local development
 > Local Development will need the commands `azd auth login`, `az login` and `azd provision` run to establish services, secrets and key vaults
