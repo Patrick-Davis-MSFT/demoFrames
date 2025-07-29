@@ -242,3 +242,5 @@ output AZURE_FUNCTION_APP_HOST_KEY_URI string = function.outputs.SERVICE_FUNCT_H
 output AZURE_FUNCTION_APP_URI string = function.outputs.SERVICE_FUNCT_URI
 output AZURE_FUNCTION_APP_NAME string = function.outputs.SERVICE_FUNCT_NAME
 output AZURE_FUNCTION_APP_IDENTITY_PRINCIPAL_ID string = function.outputs.SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID
+
+output AZURE_STORAGE_ACCOUNT_NAME string = storageAccount.outputs.name
