@@ -105,7 +105,10 @@ You should always
 * DO NOT make changes directly to Azure Services
 * ALL Keys and secrets need to be stored and pulled from key vault as environmental variables
 * Use the latest libraries and packages
-* Azure Role assignments should use the Azure default roles. 
+* Azure Role assignments should use the Azure default roles.  
+* The primary database is a cosmos DB with a MongoDB API The environmental variables to connect to this are AZURE_COSMOS_CONNECTION_STRING_KEY, AZURE_COSMOS_ACCOUNT_NAME, AZURE_COSMOS_DATABASE_NAME, AZURE_COSMOS_ENDPOINT
+* The primary blob storage is in Azure Storage with the account name in the environmental variable AZURE_STORAGE_ACCOUNT_NAME
+
 
 The user is requesting you to complete the below:
 
