@@ -36,7 +36,10 @@ param subnetName string
 @description('The Resource Group of the DNS Zone')
 param dnsResourceGroup string
 @description('The name of the DNS Zone')
-param azurePrivateDnsName string = 'privatelink.blob.core.windows.net'
+param azurePrivateDnsNameBlob string = 'privatelink.blob.${environment().suffixes.storage}'
+param azurePrivateDnsNameQueue string = 'privatelink.queue.${environment().suffixes.storage}'
+param azurePrivateDnsNameFile string = 'privatelink.file.${environment().suffixes.storage}'
+param azurePrivateDnsNameTable string = 'privatelink.table.${environment().suffixes.storage}'
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: name
@@ -73,8 +76,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
 
 
 
-resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
-  name: '${name}-pe'
+resource privateEndpointBlob 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${name}-blob-pe'
   location: location
   properties: {
     subnet: {
@@ -82,7 +85,7 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
     }
     privateLinkServiceConnections: [
       {
-        name: '${name}-plsc'
+        name: '${name}-blob-plsc'
         properties: {
           privateLinkServiceId: storage.id
           groupIds: [
@@ -94,21 +97,150 @@ resource privateEndpoint 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   }
 }
 
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+resource privateDnsZoneBlob 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
   scope: resourceGroup(dnsResourceGroup)
-  name: azurePrivateDnsName
+  name: azurePrivateDnsNameBlob
 }
 
 // Update the private DNS zone group to reference the extern DNS zone
 resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = {
-  parent: privateEndpoint
+  parent: privateEndpointBlob
   name: 'default'
   properties: {
     privateDnsZoneConfigs: [
       {
         name: 'privatelink-blob'
         properties: {
-          privateDnsZoneId: privateDnsZone.id
+          privateDnsZoneId: privateDnsZoneBlob.id
+        }
+      }
+    ]
+  }
+}
+
+
+resource privateEndpointQueue 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${name}-queue-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${name}-queue-plsc'
+        properties: {
+          privateLinkServiceId: storage.id
+          groupIds: [
+            'queue'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource privateDnsZoneQueue 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(dnsResourceGroup)
+  name: azurePrivateDnsNameQueue
+}
+
+// Update the private DNS zone group to reference the extern DNS zone
+resource privateDnsZoneGroupQueue 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = {
+  parent: privateEndpointQueue
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-queue'
+        properties: {
+          privateDnsZoneId: privateDnsZoneQueue.id
+        }
+      }
+    ]
+  }
+}
+
+resource privateEndpointFile 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${name}-file-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${name}-file-plsc'
+        properties: {
+          privateLinkServiceId: storage.id
+          groupIds: [
+            'file'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource privateDnsZoneFile 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(dnsResourceGroup)
+  name: azurePrivateDnsNameFile
+}
+
+// Update the private DNS zone group to reference the extern DNS zone
+resource privateDnsZoneGroupFile 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = {
+  parent: privateEndpointFile
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-file'
+        properties: {
+          privateDnsZoneId: privateDnsZoneFile.id
+        }
+      }
+    ]
+  }
+}
+
+
+
+resource privateEndpointTable 'Microsoft.Network/privateEndpoints@2024-07-01' = {
+  name: '${name}-table-pe'
+  location: location
+  properties: {
+    subnet: {
+      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+    }
+    privateLinkServiceConnections: [
+      {
+        name: '${name}-table-plsc'
+        properties: {
+          privateLinkServiceId: storage.id
+          groupIds: [
+            'table'
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource privateDnsZoneTable 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  scope: resourceGroup(dnsResourceGroup)
+  name: azurePrivateDnsNameTable
+}
+
+// Update the private DNS zone group to reference the extern DNS zone
+resource privateDnsZoneGroupTable 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-06-01' = {
+  parent: privateEndpointTable
+  name: 'default'
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'privatelink-table'
+        properties: {
+          privateDnsZoneId: privateDnsZoneTable.id
         }
       }
     ]
