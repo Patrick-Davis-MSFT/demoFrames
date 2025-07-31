@@ -37,8 +37,6 @@ param appDemoPrivateEndpointSubnetName string
 @description ('The name of the resource group for the private DNS zone - It is easier to manage the private DNS zones in a separate resource group')
 param dnsResourceGroup string
 @description('The name of the DNS zone for the private endpoint of the storage account')
-param appServicePrivateEndPointDNSZoneName_Storage string = 'privatelink.blob.core.windows.net'
-@description('The name of the DNS zone for the private endpoint of the storage account')
 param appServicePrivateEndPointDNSZoneName_Key_Vault string = 'privatelink.vaultcore.azure.net'
 @description('The name of the DNS zone for the private endpoint of the storage account')
 param appServicePrivateEndPointDNSZoneName_Cosmos string = 'privatelink.mongo.cosmos.azure.com'
@@ -93,12 +91,11 @@ module storageAccount './core/storage/storage-account.bicep' = {
     vnetName: appDemoVnetName
     subnetName: appDemoPrivateEndpointSubnetName
     dnsResourceGroup: dnsResourceGroup
-    azurePrivateDnsName: appServicePrivateEndPointDNSZoneName_Storage
     tags: tags
   }
 }
 
-// The application frontend
+// The services layer
 module function './app/function.bicep' = {
   name: 'function'
   scope: rg
@@ -118,6 +115,10 @@ module function './app/function.bicep' = {
       AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
       AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
       AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
+      WEBSITE_RUN_FROM_PACKAGE: '1'
+      ENABLE_ORYX_BUILD: 'True'
+      AzureWebJobsStorage__accountname: storageAccount.outputs.name
+      SCM_DO_BUILD_DURING_DEPLOYMENT: 0
       VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
     }
   }
