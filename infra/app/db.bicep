@@ -3,6 +3,7 @@ param location string = resourceGroup().location
 param tags object = {}
 param vnetName string = ''
 param subnetName string = ''
+param vnetlocation string
 param dnsResourceGroup string
 param azurePrivateDnsName string
 
@@ -35,6 +36,7 @@ module cosmos '../core/database/cosmos/mongo/cosmos-mongo-db.bicep' = {
     dnsResourceGroup: dnsResourceGroup
     vnetName: vnetName
     subnetName: subnetName
+    vnetlocation: vnetlocation
     azurePrivateDnsName: azurePrivateDnsName
   }
 }

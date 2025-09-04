@@ -1,6 +1,7 @@
 metadata description = 'Creates an Azure Key Vault.'
 param name string
 param location string = resourceGroup().location
+param vnetlocation string
 param tags object = {}
 param vnetName string = ''
 param subnetName string = ''
@@ -38,7 +39,7 @@ resource keyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04
 // Create Private Endpoint for Key Vault
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = if (enablePrivateEndpoint) {
   name: '${name}-pe'
-  location: location
+  location: vnetlocation
   tags: tags
   properties: {
     subnet: {

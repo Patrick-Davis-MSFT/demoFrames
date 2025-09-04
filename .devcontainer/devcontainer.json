@@ -34,7 +34,8 @@
                 "ms-vscode.powershell",
                 "ms-python.python",
                 "ms-python.vscode-pylance",
-                "ms-dotnettools.csdevkit"
+                "ms-dotnettools.csdevkit",
+                "echoapi.echoapi-for-vscode"
             ]
         }
     },

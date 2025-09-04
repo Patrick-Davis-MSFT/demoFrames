@@ -3,6 +3,7 @@ param accountName string
 param databaseName string
 param location string = resourceGroup().location
 param tags object = {}
+param vnetlocation string
 
 param collections array = []
 param connectionStringKey string = 'AZURE-COSMOS-CONNECTION-STRING'
@@ -51,7 +52,7 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/mongodbDatabases@2022-0
 // Create Private Endpoint for Cosmos DB Account
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2023-05-01' = if (!empty(vnetName) && !empty(subnetName)) {
   name: '${accountName}-pe'
-  location: location
+  location: vnetlocation
   tags: tags
   properties: {
     subnet: {

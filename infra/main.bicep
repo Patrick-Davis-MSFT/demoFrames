@@ -13,7 +13,6 @@ param location string
 // "resourceGroupName": {
 //      "value": "myGroupName"
 // }
-param applicationInsightsDashboardName string = ''
 param applicationInsightsName string = ''
 param appServicePlanName string = ''
 param cosmosAccountName string = ''
@@ -34,11 +33,14 @@ param appDemoAppServiceDeligatedSubnetName string
 @description('The name of the subnet for the private endpoints')
 param appDemoPrivateEndpointSubnetName string
 
+@description('The location of the subnet for the private endpoints')
+param appDemoPrivateEndpointlocation string
+
 @description ('The name of the resource group for the private DNS zone - It is easier to manage the private DNS zones in a separate resource group')
 param dnsResourceGroup string
-@description('The name of the DNS zone for the private endpoint of the storage account')
+@description('The private DNS zone name for Key Vault private endpoints')
 param appServicePrivateEndPointDNSZoneName_Key_Vault string = 'privatelink.vaultcore.azure.net'
-@description('The name of the DNS zone for the private endpoint of the storage account')
+@description('The private DNS zone name for Azure Cosmos DB (Mongo) private endpoints')
 param appServicePrivateEndPointDNSZoneName_Cosmos string = 'privatelink.mongo.cosmos.azure.com'
 
 
@@ -49,9 +51,31 @@ var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
 var tags = { 'azd-env-name': environmentName }
 
+// Resolved names to simplify repeated conditional expressions
+var resolved = {
+  rgName: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
+  appServicePlanName: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
+  webServiceName: !empty(webServiceName) ? webServiceName : '${abbrs.webSitesAppService}web-${resourceToken}'
+  functionServiceName: !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}${resourceToken}'
+  storageAccountName: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
+  cosmosAccountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+  keyVaultName: !empty(keyVaultName) ? keyVaultName : '${abbrs.keyVaultVaults}${resourceToken}'
+  logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
+  applicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}${resourceToken}'
+}
+
+// Common app settings shared by web and function apps
+var commonCosmosAppSettings = {
+  AZURE_COSMOS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmos.outputs.connectionStringKey})'
+  AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
+  AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
+  AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
+  VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
+}
+
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-  name: !empty(resourceGroupName) ? resourceGroupName : '${abbrs.resourcesResourceGroups}${environmentName}'
+  name: resolved.rgName
   location: location
   tags: tags
 }
@@ -61,8 +85,8 @@ module web './app/web.bicep' = {
   name: 'web'
   scope: rg
   params: {
-    name: !empty(webServiceName) ? webServiceName : '${abbrs.webSitesAppService}web-${resourceToken}'
-    location: location
+    name: resolved.webServiceName
+    location: appDemoPrivateEndpointlocation
     tags: tags
     appServicePlanId: appServicePlan.outputs.id
     keyVaultName: keyVault.outputs.name
@@ -70,15 +94,10 @@ module web './app/web.bicep' = {
     vnetName: appDemoVnetName
     subnetName: appDemoAppServiceDeligatedSubnetName
     dnsResourceGroup: dnsResourceGroup
-    appSettings: {
-      AZURE_COSMOS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmos.outputs.connectionStringKey})'
-      AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
-      AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
-      AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
-      VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
+    appSettings: union(commonCosmosAppSettings, {
       AZURE_FUNCTION_APP_NAME: function.outputs.SERVICE_FUNCT_NAME
       AZURE_FUNCTION_APP_API_KEY: '@Microsoft.KeyVault(SecretUri=${function.outputs.SERVICE_FUNCT_MASTER_KEY_URI})'
-     }
+    })
   }
 }
 
@@ -86,10 +105,11 @@ module storageAccount './core/storage/storage-account.bicep' = {
   name: 'storageaccount'
   scope: rg
   params: {
-    name: !empty(storageAccountName) ? storageAccountName : '${abbrs.storageStorageAccounts}${resourceToken}'
+  name: resolved.storageAccountName
     location: location
     vnetName: appDemoVnetName
     subnetName: appDemoPrivateEndpointSubnetName
+    vnetlocation: appDemoPrivateEndpointlocation
     dnsResourceGroup: dnsResourceGroup
     tags: tags
   }
@@ -100,8 +120,8 @@ module function './app/function.bicep' = {
   name: 'function'
   scope: rg
   params: {
-    name: !empty(functionServiceName) ? functionServiceName : '${abbrs.webSitesFunctions}${resourceToken}'
-    location: location
+    name: resolved.functionServiceName
+    location: appDemoPrivateEndpointlocation
     tags: tags
     appServicePlanId: appServicePlan.outputs.id
     keyVaultName: keyVault.outputs.name
@@ -110,17 +130,12 @@ module function './app/function.bicep' = {
     vnetName: appDemoVnetName
     subnetName: appDemoAppServiceDeligatedSubnetName
     dnsResourceGroup: dnsResourceGroup
-    appSettings: {
-      AZURE_COSMOS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmos.outputs.connectionStringKey})'
-      AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
-      AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
-      AZURE_COSMOS_ABOUT_COLLECTION: cosmos.outputs.aboutcollection
+    appSettings: union(commonCosmosAppSettings, {
       WEBSITE_RUN_FROM_PACKAGE: '1'
       ENABLE_ORYX_BUILD: 'True'
       AzureWebJobsStorage__accountname: storageAccount.outputs.name
       SCM_DO_BUILD_DURING_DEPLOYMENT: 0
-      VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${kvAppIn.outputs.kvSecretId})'
-    }
+    })
   }
 }
 
@@ -148,8 +163,9 @@ module cosmos './app/db.bicep' = {
   name: 'cosmos'
   scope: rg
   params: {
-    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+  accountName: resolved.cosmosAccountName
     databaseName: cosmosDatabaseName
+    vnetlocation: appDemoPrivateEndpointlocation
     location: location
     tags: tags
     keyVaultName: keyVault.outputs.name
@@ -165,8 +181,8 @@ module appServicePlan './core/host/appserviceplan.bicep' = {
   name: 'appserviceplan'
   scope: rg
   params: {
-    name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
-    location: location
+  name: resolved.appServicePlanName
+    location: appDemoPrivateEndpointlocation
     tags: tags
     sku: {
       name: 'B3'
@@ -179,8 +195,9 @@ module keyVault './core/security/keyvault.bicep' = {
   name: 'keyvault'
   scope: rg
   params: {
-    name: !empty(keyVaultName) ? keyVaultName : '${abbrs.keyVaultVaults}${resourceToken}'
+  name: resolved.keyVaultName
     location: location
+    vnetlocation: appDemoPrivateEndpointlocation
     tags: tags
     principalId: principalId
     vnetName: appDemoVnetName
@@ -209,9 +226,8 @@ module monitoring './core/monitor/monitoring.bicep' = {
   params: {
     location: location
     tags: tags
-    logAnalyticsName: !empty(logAnalyticsName) ? logAnalyticsName : '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
-    applicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${abbrs.insightsComponents}${resourceToken}'
-    applicationInsightsDashboardName: !empty(applicationInsightsDashboardName) ? applicationInsightsDashboardName : '${abbrs.portalDashboards}${resourceToken}'
+  logAnalyticsName: resolved.logAnalyticsName
+  applicationInsightsName: resolved.applicationInsightsName
   }
 }
 

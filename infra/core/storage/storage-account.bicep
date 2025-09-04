@@ -32,6 +32,9 @@ param vnetName string
 
 @description('The name of the subnet')
 param subnetName string
+@description('The location of the virtual network')
+param vnetlocation string 
+
 
 @description('The Resource Group of the DNS Zone')
 param dnsResourceGroup string
@@ -40,6 +43,9 @@ param azurePrivateDnsNameBlob string = 'privatelink.blob.${environment().suffixe
 param azurePrivateDnsNameQueue string = 'privatelink.queue.${environment().suffixes.storage}'
 param azurePrivateDnsNameFile string = 'privatelink.file.${environment().suffixes.storage}'
 param azurePrivateDnsNameTable string = 'privatelink.table.${environment().suffixes.storage}'
+
+// Reused computed values
+var subnetResourceId = '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: name
@@ -68,7 +74,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     resource container 'containers' = [for container in containers: {
       name: container.name
       properties: {
-        publicAccess: contains(container, 'publicAccess') ? container.publicAccess : 'None'
+  publicAccess: container.?publicAccess ?? 'None'
       }
     }]
   }
@@ -78,10 +84,10 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
 
 resource privateEndpointBlob 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   name: '${name}-blob-pe'
-  location: location
+  location: vnetlocation
   properties: {
     subnet: {
-      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+  id: subnetResourceId
     }
     privateLinkServiceConnections: [
       {
@@ -121,10 +127,10 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
 
 resource privateEndpointQueue 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   name: '${name}-queue-pe'
-  location: location
+  location: vnetlocation
   properties: {
     subnet: {
-      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+  id: subnetResourceId
     }
     privateLinkServiceConnections: [
       {
@@ -163,10 +169,10 @@ resource privateDnsZoneGroupQueue 'Microsoft.Network/privateEndpoints/privateDns
 
 resource privateEndpointFile 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   name: '${name}-file-pe'
-  location: location
+  location: vnetlocation
   properties: {
     subnet: {
-      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+  id: subnetResourceId
     }
     privateLinkServiceConnections: [
       {
@@ -207,10 +213,10 @@ resource privateDnsZoneGroupFile 'Microsoft.Network/privateEndpoints/privateDnsZ
 
 resource privateEndpointTable 'Microsoft.Network/privateEndpoints@2024-07-01' = {
   name: '${name}-table-pe'
-  location: location
+  location: vnetlocation
   properties: {
     subnet: {
-      id: '${resourceId(dnsResourceGroup, 'Microsoft.Network/virtualNetworks', vnetName)}/subnets/${subnetName}'
+  id: subnetResourceId
     }
     privateLinkServiceConnections: [
       {

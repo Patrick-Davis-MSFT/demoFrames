@@ -14,7 +14,7 @@ param dnsResourceGroup string
 
 
 module function '../core/host/functions.bicep' = {
-  name: '${name}'
+  name: name
   params: {
     name: name
     location: location
