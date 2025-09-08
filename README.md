@@ -108,7 +108,7 @@ You should always
 * Azure Role assignments should use the Azure default roles.  
 * The primary database is a cosmos DB with a MongoDB API The environmental variables to connect to this are AZURE_COSMOS_CONNECTION_STRING_KEY, AZURE_COSMOS_ACCOUNT_NAME, AZURE_COSMOS_DATABASE_NAME, AZURE_COSMOS_ENDPOINT
 * The primary blob storage is in Azure Storage with the account name in the environmental variable AZURE_STORAGE_ACCOUNT_NAME
-
+* You do not need to run the website to test the changes the user will do that, just build the solution is sufficient to test changes.
 
 The user is requesting you to complete the below:
 
