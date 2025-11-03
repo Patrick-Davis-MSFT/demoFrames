@@ -34,14 +34,14 @@ param appDemoAppServiceDeligatedSubnetName string
 param appDemoPrivateEndpointSubnetName string
 
 @description('The location of the subnet for the private endpoints')
-param appDemoPrivateEndpointlocation string
+param appDemoPrivateEndpointlocation string = location
 
 @description ('The name of the resource group for the private DNS zone - It is easier to manage the private DNS zones in a separate resource group')
 param dnsResourceGroup string
 @description('The private DNS zone name for Key Vault private endpoints')
 param appServicePrivateEndPointDNSZoneName_Key_Vault string = 'privatelink.vaultcore.azure.net'
-@description('The private DNS zone name for Azure Cosmos DB (Mongo) private endpoints')
-param appServicePrivateEndPointDNSZoneName_Cosmos string = 'privatelink.mongo.cosmos.azure.com'
+@description('The private DNS zone name for Azure Cosmos DB (NoSQL) private endpoints')
+param appServicePrivateEndPointDNSZoneName_Cosmos string = 'privatelink.documents.azure.com'
 
 
 @description('Id of the user or app to assign application roles')
@@ -66,6 +66,7 @@ var resolved = {
 
 // Common app settings shared by web and function apps
 var commonCosmosAppSettings = {
+  AZURE_COSMOS_ACCOUNT_NAME: cosmos.outputs.accountname
   AZURE_COSMOS_CONNECTION_STRING: '@Microsoft.KeyVault(SecretUri=${cosmos.outputs.connectionStringKey})'
   AZURE_COSMOS_DATABASE_NAME: cosmos.outputs.databaseName
   AZURE_COSMOS_ENDPOINT: cosmos.outputs.endpoint
@@ -90,13 +91,17 @@ module web './app/web.bicep' = {
     tags: tags
     appServicePlanId: appServicePlan.outputs.id
     keyVaultName: keyVault.outputs.name
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
     vnetName: appDemoVnetName
     subnetName: appDemoAppServiceDeligatedSubnetName
     dnsResourceGroup: dnsResourceGroup
     appSettings: union(commonCosmosAppSettings, {
       AZURE_FUNCTION_APP_NAME: function.outputs.SERVICE_FUNCT_NAME
       AZURE_FUNCTION_APP_API_KEY: '@Microsoft.KeyVault(SecretUri=${function.outputs.SERVICE_FUNCT_MASTER_KEY_URI})'
+      SCM_DO_BUILD_DURING_DEPLOYMENT: '1'
+      ENABLE_ORYX_BUILD: 'true'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      AZURE_KEY_VAULT_ENDPOINT: keyVault.outputs.endpoint
     })
   }
 }
@@ -126,15 +131,17 @@ module function './app/function.bicep' = {
     appServicePlanId: appServicePlan.outputs.id
     keyVaultName: keyVault.outputs.name
     storageAccountName: storageAccount.outputs.name
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
     vnetName: appDemoVnetName
     subnetName: appDemoAppServiceDeligatedSubnetName
     dnsResourceGroup: dnsResourceGroup
     appSettings: union(commonCosmosAppSettings, {
       WEBSITE_RUN_FROM_PACKAGE: '1'
-      ENABLE_ORYX_BUILD: 'True'
+      ENABLE_ORYX_BUILD: 'true'
       AzureWebJobsStorage__accountname: storageAccount.outputs.name
-      SCM_DO_BUILD_DURING_DEPLOYMENT: 0
+      SCM_DO_BUILD_DURING_DEPLOYMENT: '0'
+      APPLICATIONINSIGHTS_CONNECTION_STRING: monitoring.outputs.applicationInsightsConnectionString
+      APPINSIGHTS_INSTRUMENTATIONKEY: monitoring.outputs.applicationInsightsInstrumentationKey
+      AZURE_KEY_VAULT_ENDPOINT: keyVault.outputs.endpoint
     })
   }
 }
@@ -163,7 +170,7 @@ module cosmos './app/db.bicep' = {
   name: 'cosmos'
   scope: rg
   params: {
-  accountName: resolved.cosmosAccountName
+    accountName: resolved.cosmosAccountName
     databaseName: cosmosDatabaseName
     vnetlocation: appDemoPrivateEndpointlocation
     location: location
@@ -173,6 +180,7 @@ module cosmos './app/db.bicep' = {
     vnetName: appDemoVnetName
     subnetName: appDemoPrivateEndpointSubnetName
     azurePrivateDnsName: appServicePrivateEndPointDNSZoneName_Cosmos
+    principalIds: [] // Will be set up separately to avoid circular dependency
   }
 }
 
@@ -215,6 +223,27 @@ module kvAppIn 'core/security/keyvault-secret.bicep' ={
     name: 'app-insights-key'
     keyVaultName: keyVault.outputs.name
     secretValue: monitoring.outputs.applicationInsightsConnectionString
+  }
+}
+
+// Cosmos DB Role Assignments for Entra ID authentication (added after apps are created)
+module cosmosWebRoleAssignment 'core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-web-role-assignment'
+  scope: rg
+  params: {
+    accountName: resolved.cosmosAccountName
+    roleDefinitionId: cosmos.outputs.roleDefinitionId
+    principalId: web.outputs.SERVICE_WEB_IDENTITY_PRINCIPAL_ID
+  }
+}
+
+module cosmosFunctionRoleAssignment 'core/database/cosmos/sql/cosmos-sql-role-assign.bicep' = {
+  name: 'cosmos-function-role-assignment'
+  scope: rg
+  params: {
+    accountName: resolved.cosmosAccountName
+    roleDefinitionId: cosmos.outputs.roleDefinitionId
+    principalId: function.outputs.SERVICE_FUNCT_IDENTITY_PRINCIPAL_ID
   }
 }
 

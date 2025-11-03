@@ -6,7 +6,6 @@ param appCommandLine string = ''
 param appServicePlanId string
 param appSettings object = {}
 param keyVaultName string = ''
-param applicationInsightsName string = ''
 param vnetName string = ''
 param subnetName string = ''
 param dnsResourceGroup string
@@ -25,7 +24,6 @@ module web '../core/host/appservice.bicep' = {
     runtimeVersion: '3.13'
     appSettings: appSettings
     keyVaultName: keyVaultName
-    applicationInsightsName:applicationInsightsName
     vnetName: vnetName
     subnetName: subnetName
     dnsResourceGroup: dnsResourceGroup

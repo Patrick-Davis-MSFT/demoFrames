@@ -19,14 +19,14 @@ from approaches.httpCall import httpCall
 AZURE_FUNCTIONS_KEY = os.environ.get("AZURE_FUNCTION_APP_API_KEY", "AZURE_FUNCTION_APP_API_KEY") or "AZURE_FUNCTION_APP_API_KEY"
 AZURE_FUNCTIONS_ENDPOINT = "https://" + (os.environ.get("AZURE_FUNCTION_APP_NAME", 'AZURE_FUNCTION_APP_NAME') or "AZURE_FUNCTION_APP_NAME") + ".azurewebsites.net/api/"
 # Use dev tunnel for local testing
-# AZURE_FUNCTIONS_ENDPOINT = "https://j4k30g3c-7277.use.devtunnels.ms/api/" 
+# AZURE_FUNCTIONS_ENDPOINT = "https://h4s9nq2s-7162.use.devtunnels.ms/api/" 
 
 
 # Replace these with your own values, either in environment variables or directly here
-AZURE_COSMOS_ENDPOINT = os.environ.get("AZURE_COSMOS_ENDPOINT", "AZURE_COSMOS_ENDPOINT") or "AZURE_COSMOS_ENDPOINT"
+AZURE_COSMOS_ACCOUNT_NAME = os.environ.get("AZURE_COSMOS_ACCOUNT_NAME", "AZURE_COSMOS_ACCOUNT_NAME") or "AZURE_COSMOS_ACCOUNT_NAME"
+AZURE_COSMOS_ACCOUNT_URL = f"https://{AZURE_COSMOS_ACCOUNT_NAME}.documents.azure.com:443/"
 AZURE_COSMOS_DATABASE_NAME = os.environ.get("AZURE_COSMOS_DATABASE_NAME","AZURE_COSMOS_DATABASE_NAME") or "AZURE_COSMOS_DATABASE_NAME"
 AZURE_COSMOS_ABOUT_COLLECTION = os.environ.get("AZURE_COSMOS_ABOUT_COLLECTION","AZURE_COSMOS_ABOUT_COLLECTION") or "AZURE_COSMOS_ABOUT_COLLECTION"
-AZURE_COSMOS_CONNECTION_STRING = os.environ.get("AZURE_COSMOS_CONNECTION_STRING", "AZURE_COSMOS_CONNECTION_STRING") or "AZURE_COSMOS_CONNECTION_STRING"
 
 # Use the current user identity to authenticate with Azure OpenAI, Cognitive Search and Blob Storage (no secrets needed, 
 # just use 'az login' locally, and managed identity when deployed on Azure). If you need to use keys, use separate AzureKeyCredential instances with the 
@@ -37,12 +37,11 @@ AZURE_COSMOS_CONNECTION_STRING = os.environ.get("AZURE_COSMOS_CONNECTION_STRING"
 azure_credential = DefaultAzureCredential(exclude_shared_token_cache_credential = True)
 
 
-# Approach to get 
+# Approach to get version info using CosmosDB NoSQL with managed identity
 indexFiles_approaches = {
-    "ver": versionCheck(AZURE_COSMOS_ENDPOINT,
-                            AZURE_COSMOS_DATABASE_NAME, 
-                            AZURE_COSMOS_ABOUT_COLLECTION,
-                            AZURE_COSMOS_CONNECTION_STRING),
+    "ver": versionCheck(AZURE_COSMOS_ACCOUNT_URL,
+                       AZURE_COSMOS_DATABASE_NAME, 
+                       AZURE_COSMOS_ABOUT_COLLECTION),
     "httpCall": httpCall(AZURE_FUNCTIONS_ENDPOINT,
                          AZURE_FUNCTIONS_KEY),
 
@@ -81,9 +80,22 @@ def about():
     try:
         impl = indexFiles_approaches.get("ver")
         r = impl.run()
-        id = r["_id"]
-        r["_id"] = str(id)
-        return jsonify(r)
+        
+        if r:
+            # CosmosDB NoSQL uses 'id' instead of '_id'
+            # Convert id to string for JSON serialization if it exists
+            if "id" in r:
+                r["id"] = str(r["id"])
+            return jsonify(r)
+        else:
+            # Return default values if no document found
+            return jsonify({
+                "appName": "Demo Frames Blank",
+                "appVersion": "0.0.1a", 
+                "deploy_datetime": "Unknown",
+                "message": "No version information available"
+            })
+            
     except Exception as e:
         logging.exception("Exception in /about")
         return jsonify({"error": str(e)}), 500

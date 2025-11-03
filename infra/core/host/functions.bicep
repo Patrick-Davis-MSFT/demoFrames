@@ -4,7 +4,6 @@ param location string = resourceGroup().location
 param tags object = {}
 
 // Reference Properties
-param applicationInsightsName string = ''
 param appServicePlanId string
 param keyVaultName string = ''
 param managedIdentity bool = !empty(keyVaultName)
@@ -56,13 +55,11 @@ module functions 'appservice.bicep' = {
     allowedOrigins: allowedOrigins
     alwaysOn: alwaysOn
     appCommandLine: appCommandLine
-    applicationInsightsName: applicationInsightsName
     appServicePlanId: appServicePlanId
-    appSettings: union(appSettings, {
-        AzureWebJobsStorage__accountname: storage.name
+    appSettings: union({
         FUNCTIONS_EXTENSION_VERSION: extensionVersion
         FUNCTIONS_WORKER_RUNTIME: runtimeName
-      })
+      }, appSettings)
     clientAffinityEnabled: clientAffinityEnabled
     enableOryxBuild: enableOryxBuild
     functionAppScaleLimit: functionAppScaleLimit

@@ -42,47 +42,91 @@ az role assignment create --assignee $currUser --role "Key Vault Crypto Officer"
 
 Write-Host 'Add Function Keys to Key Vault'
 $functionKey = az functionapp keys list --name $env:AZURE_FUNCTION_APP_NAME --resource-group $env:AZURE_RESOURCE_GROUP --query "masterKey" -o tsv
-az keyvault secret set --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --value $functionKey
-# Get all versions of the secret and disable all except the latest
-$secretVersions = az keyvault secret list-versions --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "[].id" -o tsv
-$latestVersion = az keyvault secret show --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "id" -o tsv
+if ($functionKey) {
+    az keyvault secret set --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --value $functionKey
+  # Get all versions of the secret and disable all except the latest
+  $secretVersions = az keyvault secret list-versions --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "[].id" -o tsv
+  $latestVersion = az keyvault secret show --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "id" -o tsv
 
-foreach ($version in $secretVersions) {
-    if ($version -ne $latestVersion) {
-        $versionId = ($version -split "/")[-1]
-        az keyvault secret set-attributes --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --version $versionId --enabled false
-    }
+  foreach ($version in $secretVersions) {
+      if ($version -ne $latestVersion) {
+          $versionId = ($version -split "/")[-1]
+          az keyvault secret set-attributes --name $env:AZURE_FUNCTION_APP_HOST_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --version $versionId --enabled false
+      }
+  }
 }
+
+
 
 $functionKey = az functionapp keys list --name $env:AZURE_FUNCTION_APP_NAME --resource-group $env:AZURE_RESOURCE_GROUP --query "functionKeys.default" -o tsv
-az keyvault secret set --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --value $functionKey
-# Get all versions of the secret and disable all except the latest
-$secretVersions = az keyvault secret list-versions --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "[].id" -o tsv
-$latestVersion = az keyvault secret show --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "id" -o tsv
+if ($functionKey) {
+  az keyvault secret set --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --value $functionKey
+  # Get all versions of the secret and disable all except the latest
+  $secretVersions = az keyvault secret list-versions --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "[].id" -o tsv
+  $latestVersion = az keyvault secret show --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --query "id" -o tsv
 
-foreach ($version in $secretVersions) {
-    if ($version -ne $latestVersion) {
-        $versionId = ($version -split "/")[-1]
-        az keyvault secret set-attributes --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --version $versionId --enabled false
-    }
+  foreach ($version in $secretVersions) {
+      if ($version -ne $latestVersion) {
+          $versionId = ($version -split "/")[-1]
+          az keyvault secret set-attributes --name $env:AZURE_FUNCTION_APP_API_KEY --vault-name $env:AZURE_KEY_VAULT_NAME --version $versionId --enabled false
+      }
+  }
 }
 
+# Get CosmosDB account URL for NoSQL API authentication
+$cosmosAccountUrl = "https://$env:AZURE_COSMOS_ACCOUNT_NAME.documents.azure.com:443/"
 
-$tempCS = az keyvault secret show --name "AZURE-COSMOS-CONNECTION-STRING" --vault-name $env:AZURE_KEY_VAULT_NAME --query value -o tsv
-[Environment]::SetEnvironmentVariable("AZURE_COSMOS_CONNECTION_STRING", $tempCS)
+Write-Host 'Getting current public IP address'
+# Get the current public IP address of the user
+$currentIP = (Invoke-RestMethod -Uri "https://api.ipify.org" -Method Get).Trim()
+Write-Host "Current public IP address: $currentIP"
+
+# Get current CosmosDB firewall configuration
+Write-Host 'Checking current CosmosDB firewall configuration'
+$currentFirewallRules = az cosmosdb show --resource-group $env:AZURE_RESOURCE_GROUP --name $env:AZURE_COSMOS_ACCOUNT_NAME --query "ipRules" -o json | ConvertFrom-Json
+
+# Extract current IP addresses from the firewall rules
+$currentIPs = @()
+if ($currentFirewallRules) {
+    $currentIPs = $currentFirewallRules | ForEach-Object { $_.ipAddressOrRange }
+}
+
+Write-Host "Current allowed IPs in CosmosDB: $($currentIPs -join ', ')"
+
+# Check if current IP is already in the allowed list
+$ipAlreadyAllowed = $currentIPs -contains $currentIP
+$ipAlreadyAllowed = $true
+if ($ipAlreadyAllowed) {
+    Write-Host "Current IP address ($currentIP) is already allowed in CosmosDB firewall. Skipping firewall update."
+} else {
+    Write-Host 'Configuring CosmosDB firewall for selected networks with current IP address'
+    # Configure CosmosDB to use selected networks mode and add current IP
+    # Note: Azure portal IP (0.0.0.0) is added to allow Azure portal access
+    $baseIPs = @("0.0.0.0", "4.210.172.107", "13.88.56.148", "13.91.105.215", "40.91.218.243")
+    
+    # Combine base IPs with current allowed IPs (excluding duplicates) and add current IP
+    $allIPs = ($baseIPs + $currentIPs + $currentIP) | Sort-Object -Unique
+    $ipRangeFilter = $allIPs -join ","
+
+    az cosmosdb update --resource-group $env:AZURE_RESOURCE_GROUP --name $env:AZURE_COSMOS_ACCOUNT_NAME --ip-range-filter $ipRangeFilter
+
+    # Enable public network access but restrict to selected networks
+    az cosmosdb update --resource-group $env:AZURE_RESOURCE_GROUP --name $env:AZURE_COSMOS_ACCOUNT_NAME --enable-virtual-network false --enable-public-network true --network-acl-bypass "AzureServices"
+
+    Write-Host "CosmosDB firewall updated. Allowed IPs: $ipRangeFilter"
+}
 
 $cosmosContributorRoleId = az cosmosdb sql role definition list --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --query "[?roleName=='Cosmos DB Built-in Data Contributor'].id" --output tsv
 
 Write-Host 'Setting role for cosmosdb user '
-az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $currUser --scope "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourceGroups/msdocs-identity-example/providers/Microsoft.DocumentDB/databaseAccounts/msdocs-identity-example-nosql"
+az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $currUser --scope $env:AZURE_COSMOS_ACCOUNT_ID
 Write-Host 'Setting role for cosmosdb web and function app'
-az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $env:AZURE_WEB_APP_IDENTITY_PRINCIPAL_ID --scope "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourceGroups/msdocs-identity-example/providers/Microsoft.DocumentDB/databaseAccounts/msdocs-identity-example-nosql"
-az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $env:AZURE_FUNCTION_APP_IDENTITY_PRINCIPAL_ID --scope "/subscriptions/aaaa0a0a-bb1b-cc2c-dd3d-eeeeee4e4e4e/resourceGroups/msdocs-identity-example/providers/Microsoft.DocumentDB/databaseAccounts/msdocs-identity-example-nosql"
+az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $env:AZURE_WEB_APP_IDENTITY_PRINCIPAL_ID --scope $env:AZURE_COSMOS_ACCOUNT_ID
+az cosmosdb sql role assignment create --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME --role-definition-id $cosmosContributorRoleId --principal-id $env:AZURE_FUNCTION_APP_IDENTITY_PRINCIPAL_ID --scope $env:AZURE_COSMOS_ACCOUNT_ID
 
 az cosmosdb sql role assignment list --resource-group $env:AZURE_RESOURCE_GROUP --account-name $env:AZURE_COSMOS_ACCOUNT_NAME
 
-
-Write-Host 'Running "uploadVerion.py" to specify the version in cosmosdb'
+Write-Host 'Running "uploadVersion.py" to upload version information to CosmosDB using managed identity'
 $cwd = (Get-Location)
-# Todo: Fix auth for the user
-Start-Process -FilePath $venvPythonPath -ArgumentList "./scripts/uploadVersion.py -f `"$cwd/data/appinfo.json`" -d $env:AZURE_COSMOS_DATABASE_NAME -c $env:AZURE_COSMOS_ABOUT_COLLECTION -k $env:AZURE_COSMOS_CONNECTION_STRING " -Wait -NoNewWindow
+# Use the updated script with CosmosDB NoSQL API and managed identity authentication
+Start-Process -FilePath $venvPythonPath -ArgumentList "./scripts/uploadVersion.py -a `"$cosmosAccountUrl`" -d $env:AZURE_COSMOS_DATABASE_NAME -c $env:AZURE_COSMOS_ABOUT_COLLECTION -f `"$cwd/data/appinfo.json`"" -Wait -NoNewWindow

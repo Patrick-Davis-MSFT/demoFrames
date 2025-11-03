@@ -6,44 +6,61 @@ param subnetName string = ''
 param vnetlocation string
 param dnsResourceGroup string
 param azurePrivateDnsName string
+param databaseName string = ''
+param keyVaultName string
+param principalIds array = []
 
-param collections array = [
+// Define containers (simplified from MongoDB collections)
+var containers = [
   {
     name: 'About'
     id: 'About'
-    shardKey: 'Hash'
-    indexes: [ { key: { keys: [ '_id' ] } }, { key: { keys: [ 'deploy_datetime' ] } } ]
+    partitionKey: '/id'
   }
 ]
 
+// Set default database name if not provided
+var actualDatabaseName = !empty(databaseName) ? databaseName : 'DEMOFramesDB'
 
-param databaseName string = ''
-param keyVaultName string
-
-// Because databaseName is optional in main.bicep, we make sure the database name is set here.
-var defaultDatabaseName = 'DEMOFramesDB'
-var actualDatabaseName = !empty(databaseName) ? databaseName : defaultDatabaseName
-
-module cosmos '../core/database/cosmos/mongo/cosmos-mongo-db.bicep' = {
-  name: 'cosmos-mongo'
+// Use simplified Cosmos DB module
+module cosmos '../core/database/cosmos/sql/cosmos-nosql-account.bicep' = {
+  name: 'cosmos-nosql'
   params: {
-    accountName: accountName
-    databaseName: actualDatabaseName
+    name: accountName
     location: location
-    collections: collections
-    keyVaultName: keyVaultName
     tags: tags
-    dnsResourceGroup: dnsResourceGroup
+    keyVaultName: keyVaultName
+    databaseName: actualDatabaseName
+    containers: containers
     vnetName: vnetName
     subnetName: subnetName
     vnetlocation: vnetlocation
+    dnsResourceGroup: dnsResourceGroup
     azurePrivateDnsName: azurePrivateDnsName
   }
 }
 
+// Role assignments for application identities (done separately to avoid cycles)
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
+  name: accountName
+}
+
+@batchSize(1)
+resource roleAssignments 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = [for (principalId, i) in principalIds: if (!empty(principalId)) {
+  parent: cosmosAccount
+  name: guid(accountName, principalId, string(i))
+  properties: {
+    principalId: principalId
+    roleDefinitionId: cosmos.outputs.roleDefinitionId
+    scope: cosmosAccount.id
+  }
+}]
+
+// Outputs (maintain compatibility)
 output connectionStringKey string = cosmos.outputs.connectionStringKey
 output databaseName string = cosmos.outputs.databaseName
 output endpoint string = cosmos.outputs.endpoint
-output aboutcollection string = collections[0].name
-output accountname string = cosmos.outputs.accountname
-output accountid string = cosmos.outputs.accountid
+output aboutcollection string = containers[0].name
+output accountname string = cosmos.outputs.name
+output accountid string = cosmos.outputs.id
+output roleDefinitionId string = cosmos.outputs.roleDefinitionId

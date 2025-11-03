@@ -7,7 +7,6 @@ param appServicePlanId string
 param appSettings object = {}
 param keyVaultName string = ''
 param storageAccountName string
-param applicationInsightsName string = ''
 param vnetName string = ''
 param subnetName string = ''
 param dnsResourceGroup string
@@ -29,7 +28,6 @@ module function '../core/host/functions.bicep' = {
     appSettings: appSettings
     keyVaultName: keyVaultName
     storageAccountName: storageAccountName
-    applicationInsightsName: applicationInsightsName
     vnetName: vnetName
     subnetName: subnetName
     dnsResourceGroup: dnsResourceGroup
